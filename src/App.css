@@ -235,6 +235,24 @@
   margin: 0;
 }
 
+.error-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 350px;
+  background: rgba(20, 20, 20, 0.9);
+  border: 1px solid rgba(139, 0, 0, 0.4);
+  border-radius: 4px;
+  padding: 2rem;
+}
+
+.error-text {
+  color: #ff6666;
+  font-size: 1rem;
+  text-align: center;
+  margin: 0;
+}
+
 .question-input {
   background: rgba(30, 30, 30, 0.9);
   border: 1px solid rgba(139, 0, 0, 0.3);

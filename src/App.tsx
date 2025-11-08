@@ -51,7 +51,7 @@ function App() {
     setTimeout(() => {
       setShowInterpretation(true);
       setIsRevealing(false);
-    }, 5000);
+    }, 12000);
   };
 
   const handleInterpretation = async (selectedIndex: number) => {

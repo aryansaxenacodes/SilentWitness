@@ -9,17 +9,21 @@ export function Canvas({ imagePrompt, isRevealing }: CanvasProps) {
   const [opacity, setOpacity] = useState(0);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isRevealing && imagePrompt) {
       setOpacity(0);
       setGeneratedImage(null);
       setIsGenerating(true);
+      setError(null);
 
       const generateImage = async () => {
         try {
           const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
           const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+          console.log('Calling generate-image function with prompt:', imagePrompt);
 
           const response = await fetch(
             `${supabaseUrl}/functions/v1/generate-image`,
@@ -33,16 +37,27 @@ export function Canvas({ imagePrompt, isRevealing }: CanvasProps) {
             }
           );
 
+          console.log('Response status:', response.status);
+
           if (!response.ok) {
-            console.error('Failed to generate image');
+            const errorData = await response.json();
+            console.error('API error:', errorData);
+            setError(`Error: ${errorData.error || 'Failed to generate image'}`);
             setIsGenerating(false);
             return;
           }
 
           const data = await response.json();
-          setGeneratedImage(data.image);
+          console.log('Received image data:', !!data.image);
+
+          if (data.image) {
+            setGeneratedImage(data.image);
+          } else {
+            setError('No image in response');
+          }
         } catch (error) {
           console.error('Error generating image:', error);
+          setError(error instanceof Error ? error.message : 'Unknown error');
         } finally {
           setIsGenerating(false);
         }
@@ -51,12 +66,13 @@ export function Canvas({ imagePrompt, isRevealing }: CanvasProps) {
       const timer = setTimeout(() => {
         generateImage();
         setOpacity(1);
-      }, 500);
+      }, 300);
 
       return () => clearTimeout(timer);
     } else if (!imagePrompt) {
       setOpacity(0);
       setGeneratedImage(null);
+      setError(null);
     }
   }, [isRevealing, imagePrompt]);
 
@@ -82,6 +98,11 @@ export function Canvas({ imagePrompt, isRevealing }: CanvasProps) {
               <div className="generating-indicator">
                 <div className="generate-spinner"></div>
                 <p>Elara is remembering...</p>
+              </div>
+            )}
+            {error && (
+              <div className="error-display">
+                <p className="error-text">Error: {error}</p>
               </div>
             )}
             {generatedImage && !isGenerating && (
