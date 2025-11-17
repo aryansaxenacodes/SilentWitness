@@ -55,14 +55,22 @@ Deno.serve(async (req: Request) => {
     console.log("Calling Gemini API with enhanced prompt");
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateImage?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          prompt: enhancedPrompt,
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: enhancedPrompt }],
+            },
+          ],
+          generationConfig: {
+            responseMimeType: "image/png",
+          },
         }),
       }
     );
@@ -84,17 +92,14 @@ Deno.serve(async (req: Request) => {
     const data = await response.json();
     console.log("Gemini response data keys:", Object.keys(data));
 
-    let imageBase64 = null;
-    
-    if (data.images && data.images.length > 0) {
-      if (data.images[0].data) {
-        imageBase64 = data.images[0].data;
-      } else if (data.images[0].image) {
-        imageBase64 = data.images[0].image;
-      } else if (data.images[0].base64) {
-        imageBase64 = data.images[0].base64;
-      }
-    }
+    const candidate = data.candidates?.[0];
+    const parts = candidate?.content?.parts;
+    const inlineDataPart = Array.isArray(parts)
+      ? parts.find((part: any) => part?.inlineData && typeof part.inlineData === "object")
+      : undefined;
+
+    const inlineData = inlineDataPart?.inlineData as { data?: string; mimeType?: string } | undefined;
+    const imageBase64 = inlineData?.data;
 
     if (!imageBase64) {
       console.error("No image data found in response:", JSON.stringify(data));
@@ -107,9 +112,10 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    const mimeType = inlineData?.mimeType ?? "image/png";
     const base64Image = imageBase64.startsWith("data:")
       ? imageBase64
-      : `data:image/png;base64,${imageBase64}`;
+      : `data:${mimeType};base64,${imageBase64}`;
 
     console.log("Successfully generated image, returning base64");
 
